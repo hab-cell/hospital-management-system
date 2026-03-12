@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hospital Appointment System</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="navbar-container">
+      <a href="/" class="navbar-brand">
+        <div class="navbar-brand-icon">
+          <i class="fas fa-hospital"></i>
+        </div>
+        <span class="navbar-brand-text">Health<span>Hub</span></span>
+      </a>
+      <div class="navbar-menu">
+        <a href="/" class="navbar-link active">
+          <i class="fas fa-home"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="/patients" class="navbar-link">
+          <i class="fas fa-users"></i>
+          <span>Patients</span>
+        </a>
+        <a href="/doctors" class="navbar-link">
+          <i class="fas fa-user-md"></i>
+          <span>Doctors</span>
+        </a>
+        <a href="/appointments" class="navbar-link">
+          <i class="fas fa-calendar-check"></i>
+          <span>Appointments</span>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="page-header">
+      <h1 class="page-title">Dashboard</h1>
+      <p class="page-subtitle">Welcome to Hospital Appointment Management System</p>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon patients">
+          <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-content">
+          <div class="stat-value" id="totalPatients">0</div>
+          <div class="stat-label">Total Patients</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon doctors">
+          <i class="fas fa-user-md"></i>
+        </div>
+        <div class="stat-content">
+          <div class="stat-value" id="totalDoctors">0</div>
+          <div class="stat-label">Total Doctors</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon appointments">
+          <i class="fas fa-calendar-check"></i>
+        </div>
+        <div class="stat-content">
+          <div class="stat-value" id="totalAppointments">0</div>
+          <div class="stat-label">Total Appointments</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon pending">
+          <i class="fas fa-clock"></i>
+        </div>
+        <div class="stat-content">
+          <div class="stat-value" id="pendingAppointments">0</div>
+          <div class="stat-label">Pending Appointments</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+      <a href="/patients" class="quick-action patients">
+        <div class="quick-action-icon">
+          <i class="fas fa-user-plus"></i>
+        </div>
+        <div class="quick-action-text">
+          <h4>Register Patient</h4>
+          <p>Add a new patient to the system</p>
+        </div>
+      </a>
+      <a href="/doctors" class="quick-action doctors">
+        <div class="quick-action-icon">
+          <i class="fas fa-user-md"></i>
+        </div>
+        <div class="quick-action-text">
+          <h4>Add Doctor</h4>
+          <p>Register a new doctor</p>
+        </div>
+      </a>
+      <a href="/appointments" class="quick-action appointments">
+        <div class="quick-action-icon">
+          <i class="fas fa-calendar-plus"></i>
+        </div>
+        <div class="quick-action-text">
+          <h4>Book Appointment</h4>
+          <p>Schedule a new appointment</p>
+        </div>
+      </a>
+    </div>
+
+    <!-- Recent Appointments -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Recent Appointments</h2>
+        <a href="/appointments" class="btn btn-primary btn-sm">
+          <i class="fas fa-eye"></i>
+          View All
+        </a>
+      </div>
+      <div class="card-body">
+        <div class="table-container">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Patient</th>
+                <th>Doctor</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="recentAppointments">
+              <tr>
+                <td colspan="5" class="text-center">
+                  <div class="loading-container">
+                    <div class="spinner"></div>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p>&copy; 2024 Hospital Appointment System. All rights reserved.</p>
+  </footer>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    // API Base URL
+    const API_BASE = '/api';
+
+    // Toast Notification
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.innerHTML = `
+        <div class="toast-icon">
+          <i class="fas fa-${type === 'success' ? 'check' : 'times'}"></i>
+        </div>
+        <div class="toast-message">${message}</div>
+      `;
+      container.appendChild(toast);
+      
+      setTimeout(() => toast.classList.add('show'), 10);
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // Fetch Dashboard Data
+    async function fetchDashboardData() {
+      try {
+        const [patientsRes, doctorsRes, appointmentsRes] = await Promise.all([
+          fetch(`${API_BASE}/patients`),
+          fetch(`${API_BASE}/doctors`),
+          fetch(`${API_BASE}/appointments`)
+        ]);
+
+        const patients = await patientsRes.json();
+        const doctors = await doctorsRes.json();
+        const appointments = await appointmentsRes.json();
+
+        document.getElementById('totalPatients').textContent = patients.length;
+        document.getElementById('totalDoctors').textContent = doctors.length;
+        document.getElementById('totalAppointments').textContent = appointments.length;
+        
+        const pending = appointments.filter(a => a.status === 'scheduled').length;
+        document.getElementById('pendingAppointments').textContent = pending;
+
+        // Render recent appointments
+        const recentAppointments = appointments.slice(0, 5);
+        const tbody = document.getElementById('recentAppointments');
+        
+        if (recentAppointments.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="5">
+                <div class="empty-state">
+                  <div class="empty-state-icon">
+                    <i class="fas fa-calendar-xmark"></i>
+                  </div>
+                  <h3 class="empty-state-title">No appointments yet</h3>
+                  <p class="empty-state-text">Book your first appointment to get started</p>
+                </div>
+              </td>
+            </tr>
+          `;
+        } else {
+          tbody.innerHTML = recentAppointments.map(apt => `
+            <tr>
+              <td>${apt.patient_name || 'N/A'}</td>
+              <td>Dr. ${apt.doctor_name || 'N/A'}</td>
+              <td>${apt.appointment_date || 'N/A'}</td>
+              <td>${apt.appointment_time || 'N/A'}</td>
+              <td>
+                <span class="badge badge-${apt.status === 'scheduled' ? 'warning' : apt.status === 'completed' ? 'success' : 'danger'}">
+                  ${apt.status || 'scheduled'}
+                </span>
+              </td>
+            </tr>
+          `).join('');
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        // Check for specific error types
+        if (!patientsRes.ok || !doctorsRes.ok || !appointmentsRes.ok) {
+          const errorMsg = `API Error: ${patientsRes.status} ${doctorsRes.status} ${appointmentsRes.status}`;
+          console.error(errorMsg);
+          showToast('Server error - please ensure server is running', 'error');
+        } else {
+          showToast('Error loading dashboard data: ' + error.message, 'error');
+        }
+      }
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', fetchDashboardData);
+  </script>
+</body>
+</html>
+

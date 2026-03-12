@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Doctors - Hospital Appointment System</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="navbar-container">
+      <a href="/" class="navbar-brand">
+        <div class="navbar-brand-icon">
+          <i class="fas fa-hospital"></i>
+        </div>
+        <span class="navbar-brand-text">Health<span>Hub</span></span>
+      </a>
+      <div class="navbar-menu">
+        <a href="/" class="navbar-link">
+          <i class="fas fa-home"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="/patients" class="navbar-link">
+          <i class="fas fa-users"></i>
+          <span>Patients</span>
+        </a>
+        <a href="/doctors" class="navbar-link active">
+          <i class="fas fa-user-md"></i>
+          <span>Doctors</span>
+        </a>
+        <a href="/appointments" class="navbar-link">
+          <i class="fas fa-calendar-check"></i>
+          <span>Appointments</span>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="page-header flex items-center justify-between">
+      <div>
+        <h1 class="page-title">Doctors</h1>
+        <p class="page-subtitle">Manage doctor profiles</p>
+      </div>
+      <button class="btn btn-primary" onclick="openModal('doctorModal')">
+        <i class="fas fa-user-md"></i>
+        Add Doctor
+      </button>
+    </div>
+
+    <!-- Doctors Grid -->
+    <div class="grid grid-3" id="doctorsGrid">
+      <div class="text-center" style="grid-column: 1 / -1;">
+        <div class="loading-container">
+          <div class="spinner"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Add/Edit Doctor Modal -->
+  <div class="modal-overlay" id="doctorModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="doctorModalTitle">Add New Doctor</h3>
+        <button class="modal-close" onclick="closeModal('doctorModal')">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="doctorForm">
+          <input type="hidden" id="doctorId">
+          <div class="form-group">
+            <label class="form-label">Full Name *</label>
+            <input type="text" class="form-control" id="doctorName" placeholder="Enter doctor's name" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Specialization *</label>
+            <select class="form-control form-select" id="doctorSpecialization" required>
+              <option value="">Select specialization</option>
+              <option value="General Medicine">General Medicine</option>
+              <option value="Cardiology">Cardiology</option>
+              <option value="Dermatology">Dermatology</option>
+              <option value="Neurology">Neurology</option>
+              <option value="Orthopedics">Orthopedics</option>
+              <option value="Pediatrics">Pediatrics</option>
+              <option value="Psychiatry">Psychiatry</option>
+              <option value="Oncology">Oncology</option>
+              <option value="Ophthalmology">Ophthalmology</option>
+              <option value="ENT">ENT (Ear, Nose, Throat)</option>
+              <option value="Gynecology">Gynecology</option>
+              <option value="Urology">Urology</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-control" id="doctorEmail" placeholder="Enter email address">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Phone *</label>
+            <input type="tel" class="form-control" id="doctorPhone" placeholder="Enter phone number" required>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('doctorModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveDoctor()">
+          <i class="fas fa-save"></i>
+          Save Doctor
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal-overlay" id="deleteModal">
+    <div class="modal" style="max-width: 400px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Confirm Delete</h3>
+        <button class="modal-close" onclick="closeModal('deleteModal')">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete this doctor? This action cannot be undone and will also delete all associated appointments.</p>
+        <input type="hidden" id="deleteDoctorId">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('deleteModal')">Cancel</button>
+        <button class="btn btn-danger" onclick="confirmDeleteDoctor()">
+          <i class="fas fa-trash"></i>
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    const API_BASE = '/api';
+
+    // Toast Notification
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.innerHTML = `
+        <div class="toast-icon">
+          <i class="fas fa-${type === 'success' ? 'check' : 'times'}"></i>
+        </div>
+        <div class="toast-message">${message}</div>
+      `;
+      container.appendChild(toast);
+      setTimeout(() => toast.classList.add('show'), 10);
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // Modal Functions
+    function openModal(modalId) {
+      document.getElementById(modalId).classList.add('active');
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.remove('active');
+      if (modalId === 'doctorModal') {
+        document.getElementById('doctorForm').reset();
+        document.getElementById('doctorId').value = '';
+        document.getElementById('doctorModalTitle').textContent = 'Add New Doctor';
+      }
+    }
+
+    // Fetch All Doctors
+    async function fetchDoctors() {
+      try {
+        const response = await fetch(`${API_BASE}/doctors`);
+        const doctors = await response.json();
+        
+        const grid = document.getElementById('doctorsGrid');
+        
+        if (doctors.length === 0) {
+          grid.innerHTML = `
+            <div class="card" style="grid-column: 1 / -1;">
+              <div class="empty-state">
+                <div class="empty-state-icon">
+                  <i class="fas fa-user-slash"></i>
+                </div>
+                <h3 class="empty-state-title">No doctors found</h3>
+                <p class="empty-state-text">Add your first doctor to get started</p>
+                <button class="btn btn-primary" onclick="openModal('doctorModal')">
+                  <i class="fas fa-user-md"></i>
+                  Add Doctor
+                </button>
+              </div>
+            </div>
+          `;
+          return;
+        }
+
+        const specializationIcons = {
+          'General Medicine': 'fa-stethoscope',
+          'Cardiology': 'fa-heart-pulse',
+          'Dermatology': 'fa-user-doctor',
+          'Neurology': 'fa-brain',
+          'Orthopedics': 'fa-bone',
+          'Pediatrics': 'fa-baby',
+          'Psychiatry': 'fa-face-smile',
+          'Oncology': 'fa-notes-medical',
+          'Ophthalmology': 'fa-eye',
+          'ENT': 'fa-ear-listen',
+          'Gynecology': 'fa-venus',
+          'Urology': 'fa-neuter',
+          'Other': 'fa-user-md'
+        };
+
+        grid.innerHTML = doctors.map(doctor => `
+          <div class="card">
+            <div class="card-body text-center">
+              <div style="width: 80px; height: 80px; margin: 0 auto 1rem; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; color: white;">
+                <i class="fas ${specializationIcons[doctor.specialization] || 'fa-user-md'}"></i>
+              </div>
+              <h3 style="font-family: 'Outfit', sans-serif; font-size: 1.25rem; font-weight: 600; margin-bottom: 0.25rem;">Dr. ${doctor.name}</h3>
+              <p class="badge badge-primary">${doctor.specialization}</p>
+              <div style="margin-top: 1rem; font-size: 0.875rem; color: var(--gray-500);">
+                <p><i class="fas fa-envelope"></i> ${doctor.email || 'N/A'}</p>
+                <p><i class="fas fa-phone"></i> ${doctor.phone}</p>
+              </div>
+              <div class="flex gap-2 mt-4" style="justify-content: center;">
+                <button class="btn btn-outline btn-sm" onclick="editDoctor(${doctor.id})">
+                  <i class="fas fa-edit"></i>
+                  Edit
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="deleteDoctor(${doctor.id})">
+                  <i class="fas fa-trash"></i>
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      } catch (error) {
+        console.error('Error fetching doctors:', error);
+        showToast('Error loading doctors', 'error');
+      }
+    }
+
+    // Save Doctor (Create or Update)
+    async function saveDoctor() {
+      const id = document.getElementById('doctorId').value;
+      const name = document.getElementById('doctorName').value.trim();
+      const specialization = document.getElementById('doctorSpecialization').value;
+      const email = document.getElementById('doctorEmail').value.trim();
+      const phone = document.getElementById('doctorPhone').value.trim();
+
+      if (!name || !specialization || !phone) {
+        showToast('Please fill in all required fields', 'error');
+        return;
+      }
+
+      const doctorData = { name, specialization, email, phone };
+
+      try {
+        let response;
+        if (id) {
+          response = await fetch(`${API_BASE}/doctors/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(doctorData)
+          });
+        } else {
+          response = await fetch(`${API_BASE}/doctors`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(doctorData)
+          });
+        }
+
+        const result = await response.json();
+
+        if (response.ok) {
+          showToast(id ? 'Doctor updated successfully' : 'Doctor added successfully');
+          closeModal('doctorModal');
+          fetchDoctors();
+        } else {
+          showToast(result.error || 'Error saving doctor', 'error');
+        }
+      } catch (error) {
+        console.error('Error saving doctor:', error);
+        showToast('Error saving doctor', 'error');
+      }
+    }
+
+    // Edit Doctor
+    async function editDoctor(id) {
+      try {
+        const response = await fetch(`${API_BASE}/doctors/${id}`);
+        const doctor = await response.json();
+
+        if (response.ok) {
+          document.getElementById('doctorId').value = doctor.id;
+          document.getElementById('doctorName').value = doctor.name;
+          document.getElementById('doctorSpecialization').value = doctor.specialization;
+          document.getElementById('doctorEmail').value = doctor.email || '';
+          document.getElementById('doctorPhone').value = doctor.phone;
+          document.getElementById('doctorModalTitle').textContent = 'Edit Doctor';
+          openModal('doctorModal');
+        } else {
+          showToast('Doctor not found', 'error');
+        }
+      } catch (error) {
+        console.error('Error fetching doctor:', error);
+        showToast('Error loading doctor data', 'error');
+      }
+    }
+
+    // Delete Doctor
+    function deleteDoctor(id) {
+      document.getElementById('deleteDoctorId').value = id;
+      openModal('deleteModal');
+    }
+
+    async function confirmDeleteDoctor() {
+      const id = document.getElementById('deleteDoctorId').value;
+
+      try {
+        const response = await fetch(`${API_BASE}/doctors/${id}`, {
+          method: 'DELETE'
+        });
+
+        if (response.ok) {
+          showToast('Doctor deleted successfully');
+          closeModal('deleteModal');
+          fetchDoctors();
+        } else {
+          const result = await response.json();
+          showToast(result.error || 'Error deleting doctor', 'error');
+        }
+      } catch (error) {
+        console.error('Error deleting doctor:', error);
+        showToast('Error deleting doctor', 'error');
+      }
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', fetchDoctors);
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Patients - Hospital Appointment System</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="navbar-container">
+      <a href="/" class="navbar-brand">
+        <div class="navbar-brand-icon">
+          <i class="fas fa-hospital"></i>
+        </div>
+        <span class="navbar-brand-text">Health<span>Hub</span></span>
+      </a>
+      <div class="navbar-menu">
+        <a href="/" class="navbar-link">
+          <i class="fas fa-home"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="/patients" class="navbar-link active">
+          <i class="fas fa-users"></i>
+          <span>Patients</span>
+        </a>
+        <a href="/doctors" class="navbar-link">
+          <i class="fas fa-user-md"></i>
+          <span>Doctors</span>
+        </a>
+        <a href="/appointments" class="navbar-link">
+          <i class="fas fa-calendar-check"></i>
+          <span>Appointments</span>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="page-header flex items-center justify-between">
+      <div>
+        <h1 class="page-title">Patients</h1>
+        <p class="page-subtitle">Manage patient records</p>
+      </div>
+      <button class="btn btn-primary" onclick="openModal('patientModal')">
+        <i class="fas fa-user-plus"></i>
+        Add Patient
+      </button>
+    </div>
+
+    <!-- Patients Table -->
+    <div class="card">
+      <div class="card-body">
+        <div class="table-container">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Date of Birth</th>
+                <th>Address</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="patientsTable">
+              <tr>
+                <td colspan="7" class="text-center">
+                  <div class="loading-container">
+                    <div class="spinner"></div>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Add/Edit Patient Modal -->
+  <div class="modal-overlay" id="patientModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="patientModalTitle">Add New Patient</h3>
+        <button class="modal-close" onclick="closeModal('patientModal')">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="patientForm">
+          <input type="hidden" id="patientId">
+          <div class="form-group">
+            <label class="form-label">Full Name *</label>
+            <input type="text" class="form-control" id="patientName" placeholder="Enter full name" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email *</label>
+            <input type="email" class="form-control" id="patientEmail" placeholder="Enter email address" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Phone *</label>
+            <input type="tel" class="form-control" id="patientPhone" placeholder="Enter phone number" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Date of Birth</label>
+            <input type="date" class="form-control" id="patientDob">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Address</label>
+            <input type="text" class="form-control" id="patientAddress" placeholder="Enter address">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('patientModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="savePatient()">
+          <i class="fas fa-save"></i>
+          Save Patient
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal-overlay" id="deleteModal">
+    <div class="modal" style="max-width: 400px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Confirm Delete</h3>
+        <button class="modal-close" onclick="closeModal('deleteModal')">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete this patient? This action cannot be undone and will also delete all associated appointments.</p>
+        <input type="hidden" id="deletePatientId">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('deleteModal')">Cancel</button>
+        <button class="btn btn-danger" onclick="confirmDeletePatient()">
+          <i class="fas fa-trash"></i>
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    const API_BASE = '/api';
+
+    // Toast Notification
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.innerHTML = `
+        <div class="toast-icon">
+          <i class="fas fa-${type === 'success' ? 'check' : 'times'}"></i>
+        </div>
+        <div class="toast-message">${message}</div>
+      `;
+      container.appendChild(toast);
+      setTimeout(() => toast.classList.add('show'), 10);
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // Modal Functions
+    function openModal(modalId) {
+      document.getElementById(modalId).classList.add('active');
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.remove('active');
+      if (modalId === 'patientModal') {
+        document.getElementById('patientForm').reset();
+        document.getElementById('patientId').value = '';
+        document.getElementById('patientModalTitle').textContent = 'Add New Patient';
+      }
+    }
+
+    // Fetch All Patients
+    async function fetchPatients() {
+      try {
+        const response = await fetch(`${API_BASE}/patients`);
+        const patients = await response.json();
+        
+        const tbody = document.getElementById('patientsTable');
+        
+        if (patients.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="7">
+                <div class="empty-state">
+                  <div class="empty-state-icon">
+                    <i class="fas fa-user-slash"></i>
+                  </div>
+                  <h3 class="empty-state-title">No patients found</h3>
+                  <p class="empty-state-text">Add your first patient to get started</p>
+                </div>
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        tbody.innerHTML = patients.map(patient => `
+          <tr>
+            <td>#${patient.id}</td>
+            <td><strong>${patient.name}</strong></td>
+            <td>${patient.email}</td>
+            <td>${patient.phone}</td>
+            <td>${patient.date_of_birth || 'N/A'}</td>
+            <td>${patient.address || 'N/A'}</td>
+            <td>
+              <div class="table-actions">
+                <button class="btn btn-outline btn-sm btn-icon" onclick="editPatient(${patient.id})" title="Edit">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-danger btn-sm btn-icon" onclick="deletePatient(${patient.id})" title="Delete">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `).join('');
+      } catch (error) {
+        console.error('Error fetching patients:', error);
+        showToast('Error loading patients', 'error');
+      }
+    }
+
+    // Save Patient (Create or Update)
+    async function savePatient() {
+      const id = document.getElementById('patientId').value;
+      const name = document.getElementById('patientName').value.trim();
+      const email = document.getElementById('patientEmail').value.trim();
+      const phone = document.getElementById('patientPhone').value.trim();
+      const date_of_birth = document.getElementById('patientDob').value;
+      const address = document.getElementById('patientAddress').value.trim();
+
+      if (!name || !email || !phone) {
+        showToast('Please fill in all required fields', 'error');
+        return;
+      }
+
+      const patientData = { name, email, phone, date_of_birth, address };
+
+      try {
+        let response;
+        if (id) {
+          response = await fetch(`${API_BASE}/patients/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(patientData)
+          });
+        } else {
+          response = await fetch(`${API_BASE}/patients`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(patientData)
+          });
+        }
+
+        const result = await response.json();
+
+        if (response.ok) {
+          showToast(id ? 'Patient updated successfully' : 'Patient added successfully');
+          closeModal('patientModal');
+          fetchPatients();
+        } else {
+          showToast(result.error || 'Error saving patient', 'error');
+        }
+      } catch (error) {
+        console.error('Error saving patient:', error);
+        showToast('Error saving patient', 'error');
+      }
+    }
+
+    // Edit Patient
+    async function editPatient(id) {
+      try {
+        const response = await fetch(`${API_BASE}/patients/${id}`);
+        const patient = await response.json();
+
+        if (response.ok) {
+          document.getElementById('patientId').value = patient.id;
+          document.getElementById('patientName').value = patient.name;
+          document.getElementById('patientEmail').value = patient.email;
+          document.getElementById('patientPhone').value = patient.phone;
+          document.getElementById('patientDob').value = patient.date_of_birth || '';
+          document.getElementById('patientAddress').value = patient.address || '';
+          document.getElementById('patientModalTitle').textContent = 'Edit Patient';
+          openModal('patientModal');
+        } else {
+          showToast('Patient not found', 'error');
+        }
+      } catch (error) {
+        console.error('Error fetching patient:', error);
+        showToast('Error loading patient data', 'error');
+      }
+    }
+
+    // Delete Patient
+    function deletePatient(id) {
+      document.getElementById('deletePatientId').value = id;
+      openModal('deleteModal');
+    }
+
+    async function confirmDeletePatient() {
+      const id = document.getElementById('deletePatientId').value;
+
+      try {
+        const response = await fetch(`${API_BASE}/patients/${id}`, {
+          method: 'DELETE'
+        });
+
+        if (response.ok) {
+          showToast('Patient deleted successfully');
+          closeModal('deleteModal');
+          fetchPatients();
+        } else {
+          const result = await response.json();
+          showToast(result.error || 'Error deleting patient', 'error');
+        }
+      } catch (error) {
+        console.error('Error deleting patient:', error);
+        showToast('Error deleting patient', 'error');
+      }
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', fetchPatients);
+  </script>
+</body>
+</html>
+

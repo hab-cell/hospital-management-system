@@ -1,0 +1,278 @@
+const fs = require('fs');
+const path = require('path');
+
+// Read the HTML file
+const htmlPath = path.join(__dirname, 'API-Documentation.html');
+const htmlContent = fs.readFileSync(htmlPath, 'utf8');
+
+// Create a simple PDF using basic HTML to text conversion
+// This creates a text-based representation
+
+const pdfContent = `
+================================================================================
+                    HOSPITAL APPOINTMENT SYSTEM
+                         API DOCUMENTATION v1.0
+================================================================================
+
+1. INTRODUCTION
+---------------
+The Hospital Appointment System provides a comprehensive RESTful API for 
+managing hospital appointments, patients, and doctors.
+
+Base URL: http://localhost:3000/api
+Web Interface: http://localhost:3000
+
+
+2. TECHNOLOGY STACK
+-------------------
+- Backend: Node.js with Express.js
+- Database: SQLite (sql.js)
+- Frontend: HTML5, CSS3, Vanilla JavaScript
+- Architecture: RESTful API
+
+
+3. DATABASE SCHEMA
+------------------
+
+3.1 Patients Table
+------------------
+Column           | Type    | Constraints              | Description
+-----------------|---------|--------------------------|-----------------------
+id               | INTEGER | PRIMARY KEY AUTOINCREMENT| Unique patient ID
+name             | TEXT    | NOT NULL                 | Patient's full name
+email            | TEXT    | UNIQUE, NOT NULL         | Email address
+phone            | TEXT    | NOT NULL                 | Contact number
+date_of_birth    | TEXT    | Nullable                 | DOB (YYYY-MM-DD)
+address          | TEXT    | Nullable                 | Home address
+created_at       | TEXT    | DEFAULT CURRENT_TIMESTAMP|
+
+3.2 Doctors Table
+-----------------
+Column           | Type    | Constraints              | Description
+-----------------|---------|--------------------------|-----------------------
+id               | INTEGER | PRIMARY KEY AUTOINCREMENT| Unique doctor ID
+name             | TEXT    | NOT NULL                 | Doctor's full name
+specialization   | TEXT    | NOT NULL                 | Medical specialization
+email            | TEXT    | UNIQUE, Nullable         | Email address
+phone            | TEXT    | NOT NULL                 | Contact number
+created_at       | TEXT    | DEFAULT CURRENT_TIMESTAMP|
+
+3.3 Appointments Table
+----------------------
+Column             | Type    | Constraints                    | Description
+-------------------|---------|--------------------------------|-----------------------
+id                 | INTEGER | PRIMARY KEY AUTOINCREMENT      | Unique appointment ID
+patient_id         | INTEGER | NOT NULL, FOREIGN KEY         | Reference to patient
+doctor_id          | INTEGER | NOT NULL, FOREIGN KEY         | Reference to doctor
+appointment_date   | TEXT    | NOT NULL                      | Date (YYYY-MM-DD)
+appointment_time   | TEXT    | NOT NULL                      | Time (HH:MM)
+status             | TEXT    | DEFAULT 'scheduled'           | scheduled/completed/cancelled
+notes              | TEXT    | Nullable                      | Additional notes
+created_at         | TEXT    | DEFAULT CURRENT_TIMESTAMP     |
+
+
+4. API ENDPOINTS
+-----------------
+
+4.1 Patients API
+-----------------
+Method   | Endpoint              | Description
+---------|----------------------|-----------------------------------
+GET      | /api/patients        | Get all patients
+GET      | /api/patients/:id    | Get patient by ID
+POST     | /api/patients        | Create new patient
+PUT      | /api/patients/:id    | Update patient
+DELETE   | /api/patients/:id   | Delete patient
+
+4.2 Doctors API
+---------------
+Method   | Endpoint              | Description
+---------|----------------------|-----------------------------------
+GET      | /api/doctors         | Get all doctors
+GET      | /api/doctors/:id     | Get doctor by ID
+POST     | /api/doctors         | Create new doctor
+PUT      | /api/doctors/:id     | Update doctor
+DELETE   | /api/doctors/:id     | Delete doctor
+
+4.3 Appointments API
+--------------------
+Method   | Endpoint                         | Description
+---------|----------------------------------|-----------------------------------
+GET      | /api/appointments               | Get all appointments
+GET      | /api/appointments/:id           | Get appointment by ID
+GET      | /api/appointments/patient/:id  | Get appointments by patient
+GET      | /api/appointments/doctor/:id   | Get appointments by doctor
+POST     | /api/appointments               | Create new appointment
+PUT      | /api/appointments/:id          | Update appointment
+DELETE   | /api/appointments/:id          | Delete appointment
+
+
+5. REQUEST AND RESPONSE EXAMPLES
+---------------------------------
+
+5.1 Create Patient
+------------------
+Endpoint: POST /api/patients
+
+Request:
+{
+  "name": "John Doe",
+  "email": "john.doe@example.com",
+  "phone": "1234567890",
+  "date_of_birth": "1990-01-15",
+  "address": "123 Main Street, City"
+}
+
+Response (201 Created):
+{
+  "id": 1,
+  "name": "John Doe",
+  "email": "john.doe@example.com",
+  "phone": "1234567890",
+  "date_of_birth": "1990-01-15",
+  "address": "123 Main Street, City",
+  "created_at": "2024-01-15 10:30:00"
+}
+
+5.2 Create Doctor
+-----------------
+Endpoint: POST /api/doctors
+
+Request:
+{
+  "name": "Sarah Smith",
+  "specialization": "Cardiology",
+  "email": "sarah.smith@hospital.com",
+  "phone": "9876543210"
+}
+
+Response (201 Created):
+{
+  "id": 1,
+  "name": "Sarah Smith",
+  "specialization": "Cardiology",
+  "email": "sarah.smith@hospital.com",
+  "phone": "9876543210",
+  "created_at": "2024-01-15 10:30:00"
+}
+
+5.3 Create Appointment
+-----------------------
+Endpoint: POST /api/appointments
+
+Request:
+{
+  "patient_id": 1,
+  "doctor_id": 1,
+  "appointment_date": "2024-01-20",
+  "appointment_time": "10:00",
+  "status": "scheduled",
+  "notes": "Regular checkup"
+}
+
+Response (201 Created):
+{
+  "id": 1,
+  "patient_id": 1,
+  "doctor_id": 1,
+  "appointment_date": "2024-01-20",
+  "appointment_time": "10:00",
+  "status": "scheduled",
+  "notes": "Regular checkup",
+  "created_at": "2024-01-15 10:30:00",
+  "patient_name": "John Doe",
+  "doctor_name": "Sarah Smith",
+  "doctor_specialization": "Cardiology"
+}
+
+
+6. HTTP STATUS CODES
+--------------------
+Status Code       | Description
+------------------|-------------------------------------------
+200 OK            | Request succeeded
+201 Created       | Resource successfully created
+400 Bad Request   | Invalid input or missing required fields
+404 Not Found     | Resource not found
+500 Server Error  | Server error
+
+
+7. ERROR RESPONSE EXAMPLES
+---------------------------
+
+7.1 Validation Error (400)
+{
+  "error": "Name, email, and phone are required"
+}
+
+7.2 Not Found (404)
+{
+  "error": "Patient not found"
+}
+
+7.3 Duplicate Email (400)
+{
+  "error": "Email already exists"
+}
+
+
+8. WEB INTERFACE
+----------------
+The system includes a user-friendly web interface:
+
+- Dashboard:    http://localhost:3000/       - Overview with statistics
+- Patients:      http://localhost:3000/patients - Manage patients
+- Doctors:       http://localhost:3000/doctors  - Manage doctors
+- Appointments:  http://localhost:3000/appointments - Manage appointments
+
+
+9. INSTALLATION AND RUNNING
+----------------------------
+
+9.1 Prerequisites
+-----------------
+- Node.js (v14 or higher)
+- npm (Node Package Manager)
+
+9.2 Installation Steps
+----------------------
+1. Navigate to the project directory:
+   cd hospital-management
+
+2. Install dependencies:
+   npm install
+
+3. Start the server:
+   npm start
+
+4. Open browser and navigate to:
+   http://localhost:3000
+
+
+10. TESTING WITH CURL
+---------------------
+
+Get All Patients:
+curl http://localhost:3000/api/patients
+
+Create a Patient:
+curl -X POST http://localhost:3000/api/patients -H "Content-Type: application/json" -d "{\"name\":\"John Doe\",\"email\":\"john@example.com\",\"phone\":\"1234567890\"}"
+
+Get All Doctors:
+curl http://localhost:3000/api/doctors
+
+Create an Appointment:
+curl -X POST http://localhost:3000/api/appointments -H "Content-Type: application/json" -d "{\"patient_id\":1,\"doctor_id\":1,\"appointment_date\":\"2024-01-20\",\"appointment_time\":\"10:00\"}"
+
+
+================================================================================
+                    HOSPITAL APPOINTMENT SYSTEM
+                         API DOCUMENTATION
+                         Copyright 2024 All Rights Reserved
+================================================================================
+`;
+
+// Save as text file (can be converted to PDF using any text-to-PDF converter)
+fs.writeFileSync(path.join(__dirname, 'API-Documentation.txt'), pdfContent);
+console.log('Text documentation created: API-Documentation.txt');
+
